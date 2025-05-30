@@ -77,17 +77,23 @@ self.addEventListener('fetch', (event) => {
 
           return response;
         })
-        .catch(() => {
-          // Fallback jika gagal fetch
-          if (request.mode === 'navigate') {
-            return caches.match('/StoryApps/index.html');
-          }
-          if (request.destination === 'image') {
-            // fallback ke logo jika gagal fetch gambar story
-            return caches.match('/StoryApps/images/logo.png')
-              .then((response) => response || caches.match('/StoryApps/icons/icon-192.png'));
-          }
-        });
+       .catch(() => {
+  // Fallback jika gagal fetch
+  if (request.mode === 'navigate') {
+    return caches.match('/StoryApps/index.html');
+  }
+  if (request.destination === 'image') {
+    return caches.match('/StoryApps/images/logo.png')
+      .then((response) => {
+        if (response) return response;
+        return caches.match('/StoryApps/icons/icon-192.png');
+       })
+        .then((response) => {
+          if (response) return response;
+          return new Response('', { status: 404, statusText: 'Not Found' });
+       });
+        }
+      });
     })
   );
 });

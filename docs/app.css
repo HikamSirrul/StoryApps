@@ -574,6 +574,58 @@ footer .footer-brand {
   }
 }
 
+/* Gaya tombol umum */
+.button {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  user-select: none;
+  display: inline-block;
+}
+
+/* Tombol Simpan (warna utama aplikasi, misal biru) */
+.button-save {
+  background-color: #1976d2; /* warna biru */
+  color: white;
+  box-shadow: 0 6px 12px rgba(25, 118, 210, 0.4);
+}
+
+.button-save:hover {
+  background-color: #1565c0;
+  box-shadow: 0 8px 16px rgba(21, 101, 192, 0.6);
+  transform: translateY(-2px);
+}
+
+.button-save:active {
+  background-color: #0d47a1;
+  box-shadow: 0 3px 6px rgba(13, 71, 161, 0.7);
+  transform: translateY(0);
+}
+
+.button-delete {
+  background-color: #e53935; 
+  color: white;
+  box-shadow: 0 6px 12px rgba(229, 57, 53, 0.4);
+}
+
+.button-delete:hover {
+  background-color: #d32f2f;
+  box-shadow: 0 8px 16px rgba(211, 47, 47, 0.6);
+  transform: translateY(-2px);
+}
+
+.button-delete:active {
+  background-color: #b71c1c;
+  box-shadow: 0 3px 6px rgba(183, 28, 28, 0.7);
+  transform: translateY(0);
+}
+
+
 /* required styles */
 
 .leaflet-pane,

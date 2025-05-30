@@ -1,5 +1,6 @@
 const CACHE_NAME = 'storyapp-v5';
 
+
 const STATIC_ASSETS = [
   '/StoryApps/', 
   '/StoryApps/index.html',
@@ -44,17 +45,14 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: gunakan cache, fallback ke network
 self.addEventListener('fetch', (event) => {
   const request = event.request;
 
-  // Lewati non-GET request (misal: POST, PUT)
   if (request.method !== 'GET') return;
 
   const isApiRequest = request.url.includes('dicoding.dev/v1');
   const isExternalRequest = new URL(request.url).origin !== self.location.origin;
 
-  // Biarkan API dan eksternal (misal: Leaflet CDN) tidak di-cache
   if (isApiRequest || isExternalRequest) return;
 
   event.respondWith(
@@ -76,29 +74,23 @@ self.addEventListener('fetch', (event) => {
 
           return response;
         })
-        .catch(() => {
-          // Fallback jika gagal fetch
-          if (request.mode === 'navigate') {
-            return caches.match('/StoryApps/index.html').then((response) => {
-              return response || new Response('<h1>Offline</h1>', {
-                headers: { 'Content-Type': 'text/html' },
-              });
-            });
-          }
-          if (request.destination === 'image') {
-            return caches.match('/StoryApps/images/logo.png')
-              .then((response) => {
-                if (response) return response;
-                return caches.match('/StoryApps/icons/icon-192.png');
-              })
-              .then((response) => {
-                if (response) return response;
-                return new Response('', { status: 404, statusText: 'Not Found' });
-              });
-          }
-          // Fallback default agar selalu return Response valid
+       .catch(() => {
+  // Fallback jika gagal fetch
+  if (request.mode === 'navigate') {
+    return caches.match('/StoryApps/index.html');
+  }
+  if (request.destination === 'image') {
+    return caches.match('/StoryApps/images/logo.png')
+      .then((response) => {
+        if (response) return response;
+        return caches.match('/StoryApps/icons/icon-192.png');
+       })
+        .then((response) => {
+          if (response) return response;
           return new Response('', { status: 404, statusText: 'Not Found' });
-        });
+       });
+        }
+      });
     })
   );
 });

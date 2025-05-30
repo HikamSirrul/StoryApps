@@ -2,14 +2,14 @@ const CACHE_NAME = 'storyapp-v5';
 
 // Tambahkan file sesuai hasil build Webpack di folder dist
 const STATIC_ASSETS = [
-  '/', // penting untuk navigasi
-  '/index.html',
-  '/manifest.json',
-  '/app.bundle.js',     // ganti sesuai nama file hasil Webpack jika berbeda
-  '/app.css',           // ganti juga jika menggunakan nama lain
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/images/logo.png',
+  '/StoryApp/', // penting untuk navigasi
+  '/StoryApp/index.html',
+  '/StoryApp/manifest.json',
+  '/StoryApp/app.bundle.js',     // ganti sesuai nama file hasil Webpack jika berbeda
+  '/StoryApp/app.css',           // ganti juga jika menggunakan nama lain
+  '/StoryApp/icons/icon-192.png',
+  '/StoryApp/icons/icon-512.png',
+  '/StoryApp/images/logo.png',
 ];
 
 // Install: cache semua asset statis

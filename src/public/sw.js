@@ -4,8 +4,8 @@ const STATIC_ASSETS = [
   '/StoryApps/', 
   '/StoryApps/index.html',
   '/StoryApps/manifest.json',
-  '/StoryApps/app.bundle.js', 
-  '/StoryApps/app.css',           
+  '/StoryApps/app.bundle.js',     
+  '/StoryApps/app.css',  
   '/StoryApps/icons/icon-192.png',
   '/StoryApps/icons/icon-512.png',
   '/StoryApps/images/logo.png',
@@ -51,12 +51,11 @@ self.addEventListener('fetch', (event) => {
   // Lewati non-GET request (misal: POST, PUT)
   if (request.method !== 'GET') return;
 
-  const requestUrl = new URL(request.url);
-  const isApiRequest = requestUrl.href.includes('dicoding.dev/v1');
-  const isExternalRequest = requestUrl.origin !== self.location.origin;
+  const isApiRequest = request.url.includes('dicoding.dev/v1');
+  const isExternalRequest = new URL(request.url).origin !== self.location.origin;
 
-  // Biarkan API tidak di-cache
-  if (isApiRequest) return;
+  // Biarkan API dan eksternal (misal: Leaflet CDN) tidak di-cache
+  if (isApiRequest || isExternalRequest) return;
 
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
@@ -68,10 +67,9 @@ self.addEventListener('fetch', (event) => {
             return response;
           }
 
-          // Clone response untuk disimpan ke cache
           const cloned = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            if (!isApiRequest && (request.destination === 'image' || requestUrl.origin === self.location.origin)) {
+            if (new URL(request.url).origin === self.location.origin) {
               cache.put(request, cloned);
             }
           });
@@ -81,18 +79,24 @@ self.addEventListener('fetch', (event) => {
         .catch(() => {
           // Fallback jika gagal fetch
           if (request.mode === 'navigate') {
-            return caches.match('/StoryApps/index.html');
-          }
-
-          if (request.destination === 'image') {
-            return caches.match(request).then((response) => {
-              if (response) return response;
-              return caches.match('/StoryApps/images/logo.png')
-                .then((fallback) => fallback || caches.match('/StoryApps/icons/icon-192.png'))
-                .then((fallback) => fallback || new Response('', { status: 404, statusText: 'Not Found' }));
+            return caches.match('/StoryApps/index.html').then((response) => {
+              return response || new Response('<h1>Offline</h1>', {
+                headers: { 'Content-Type': 'text/html' },
+              });
             });
           }
-
+          if (request.destination === 'image') {
+            return caches.match('/StoryApps/images/logo.png')
+              .then((response) => {
+                if (response) return response;
+                return caches.match('/StoryApps/icons/icon-192.png');
+              })
+              .then((response) => {
+                if (response) return response;
+                return new Response('', { status: 404, statusText: 'Not Found' });
+              });
+          }
+          // Fallback default agar selalu return Response valid
           return new Response('', { status: 404, statusText: 'Not Found' });
         });
     })

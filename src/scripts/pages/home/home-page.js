@@ -38,11 +38,9 @@ export default class HomePage {
       }).addTo(this.map);
     }
 
-    // Hapus marker lama
     this.markers.forEach(marker => this.map.removeLayer(marker));
     this.markers = [];
 
-    // Tambahkan marker baru
     this.stories.forEach((story) => {
       if (story.lat && story.lon) {
         const marker = L.marker([story.lat, story.lon])
@@ -52,7 +50,6 @@ export default class HomePage {
       }
     });
 
-    // Sesuaikan view map supaya semua marker terlihat (jika ada)
     if (this.markers.length > 0) {
       const group = L.featureGroup(this.markers);
       this.map.fitBounds(group.getBounds().pad(0.2));
@@ -85,11 +82,11 @@ export default class HomePage {
     }
 
     storyHtml += this.stories.map(story => {
-      // Jika dari cache dan photoBlob ada, buat URL Blob
       let imgSrc = story.photoUrl;
       if (fromCache && story.photoBlob) {
         imgSrc = URL.createObjectURL(story.photoBlob);
       }
+
       return `
         <article class="story-item" data-id="${story.id}">
           <img src="${imgSrc}" alt="Photo from ${story.name}" class="story-img" />
@@ -99,13 +96,14 @@ export default class HomePage {
             ${new Date(story.createdAt).toLocaleString()}
           </time>
           <button class="btn-delete" aria-label="Hapus story ${story.name}">Hapus</button>
+          <button class="btn-save" aria-label="Simpan story ${story.name}">Simpan</button>
         </article>
       `;
     }).join('');
 
     storyContainer.innerHTML = storyHtml;
 
-    // Pasang event handler tombol hapus
+    // Event tombol hapus
     const deleteButtons = storyContainer.querySelectorAll('.btn-delete');
     deleteButtons.forEach(button => {
       button.addEventListener('click', async (event) => {
@@ -122,6 +120,40 @@ export default class HomePage {
             alert('Gagal menghapus story.');
             console.error(error);
           }
+        }
+      });
+    });
+
+    // Event tombol simpan
+    const saveButtons = storyContainer.querySelectorAll('.btn-save');
+    saveButtons.forEach(button => {
+      button.addEventListener('click', async (event) => {
+        const article = event.target.closest('article');
+        const id = article?.dataset.id;
+        if (!id) return;
+
+        const story = this.stories.find(s => s.id === id);
+        if (!story) return;
+
+        try {
+          // Cek jika sudah tersimpan
+          const existing = await IdbHelper.getStoryById(id);
+          if (existing) {
+            alert('Story sudah disimpan sebelumnya.');
+            return;
+          }
+
+          // Fetch foto sebagai blob jika belum ada
+          if (!story.photoBlob && story.photoUrl) {
+            const res = await fetch(story.photoUrl);
+            story.photoBlob = await res.blob();
+          }
+
+          await IdbHelper.saveStory(story);
+          alert('Story berhasil disimpan untuk offline!');
+        } catch (err) {
+          console.error('[HomePage] Gagal simpan story:', err);
+          alert('Gagal menyimpan story ke cache.');
         }
       });
     });

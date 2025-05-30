@@ -87,7 +87,7 @@ class App {
 if ('serviceWorker' in navigator && 'PushManager' in window) {
   window.addEventListener('load', async () => {
     try {
-      const registration = await navigator.serviceWorker.register('/StoryApp/sw.js');
+      const registration = await navigator.serviceWorker.register('/StoryApps/sw.js');
       console.log('[SW] Registered:', registration.scope);
 
       const existing = await registration.pushManager.getSubscription();

@@ -1,35 +1,70 @@
-import IdbHelper from '../../utils/idb-helper';
+import SavedPresenter from './saved-presenter';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-class SavedPage {
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+  iconUrl: require('leaflet/dist/images/marker-icon.png'),
+  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+});
+
+export default class SavedPage {
   async render() {
-    return `<section id="savedList"><h2>Disimpan Offline</h2></section>`;
+    return `
+      <main class="saved-container">
+        <h1 class="page-title">Story Tersimpan</h1>
+        <div id="map" class="map-container" aria-label="Saved story locations map" role="region"></div>
+        <div id="savedStories" class="story-list"></div>
+      </main>
+    `;
   }
 
   async afterRender() {
-    const stories = await IdbHelper.getAllStories();
-    const container = document.getElementById('savedList');
+    const container = document.querySelector('#savedStories');
+    const mapContainer = document.querySelector('#map');
+    const stories = await SavedPresenter.getSavedStories();
 
-    container.innerHTML = '<h2>Disimpan Offline</h2>'; // Header tetap
     if (stories.length === 0) {
-      container.innerHTML += `<p>Tidak ada cerita yang disimpan.</p>`;
+      container.innerHTML = '<p>Belum ada story yang disimpan.</p>';
       return;
     }
 
-    stories.forEach((story) => {
-      const div = document.createElement('div');
-      div.innerHTML = `
-        <h3>${story.name}</h3>
-        <p>${story.description}</p>
-        <button class="delete-btn" data-id="${story.id}">Hapus</button>
-      `;
-      div.querySelector('.delete-btn').addEventListener('click', async () => {
-        await IdbHelper.deleteStory(story.id);
-        this.afterRender(); // Refresh tampilan setelah hapus
-      });
+    // Tampilkan daftar story
+    const html = stories.map((story) => `
+      <article class="story-item">
+        <img src="${story.photoUrl || story.photo || 'default.jpg'}" alt="Photo from ${story.name}" class="story-img" />
+        <h2 class="story-title">${story.name}</h2>
+        <p class="story-description">${story.description}</p>
+        <time datetime="${story.createdAt}" class="story-date">
+          ${new Date(story.createdAt).toLocaleString()}
+        </time>
+        <button class="delete-story-btn" data-id="${story.id}">🗑️ Hapus</button>
+      </article>
+    `).join('');
 
-      container.appendChild(div);
+    container.innerHTML = html;
+
+    // Inisialisasi map
+    const map = L.map(mapContainer).setView([-2.5, 118], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+
+    stories.forEach((story) => {
+      if (story.lat && story.lon) {
+        L.marker([story.lat, story.lon])
+          .addTo(map)
+          .bindPopup(`<strong>${story.name}</strong><br>${story.description}`);
+      }
+    });
+
+    document.querySelectorAll('.delete-story-btn').forEach((button) => {
+      button.addEventListener('click', async (e) => {
+        const id = e.target.dataset.id;
+        await SavedPresenter.deleteSavedStory(id);
+        e.target.closest('.story-item').remove();
+      });
     });
   }
 }
-
-export default SavedPage;

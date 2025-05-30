@@ -29,17 +29,7 @@ const HomePresenter = {
 
       const stories = response.listStory || [];
 
-      // Simpan ke IndexedDB secara paralel, tapi handle error tiap item supaya tidak gagal total
-      await Promise.all(
-        stories.map(async (story) => {
-          try {
-            await IdbHelper.saveStory(story);
-          } catch (saveErr) {
-            console.warn('[HomePresenter] Gagal simpan story ke IndexedDB:', saveErr, story);
-          }
-        })
-      );
-
+      // Tidak lagi menyimpan otomatis ke IndexedDB di sini
       return { error: false, listStory: stories, fromCache: false };
     } catch (err) {
       console.error('[HomePresenter] Gagal ambil data dari API, fallback ke cache:', err);

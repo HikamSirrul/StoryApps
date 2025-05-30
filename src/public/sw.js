@@ -80,10 +80,12 @@ self.addEventListener('fetch', (event) => {
         .catch(() => {
           // Fallback jika gagal fetch
           if (request.mode === 'navigate') {
-            return caches.match('/index.html');
+            return caches.match('/StoryApps/index.html');
           }
           if (request.destination === 'image') {
-            return caches.match('/images/favicon.png');
+            // fallback ke logo jika gagal fetch gambar story
+            return caches.match('/StoryApps/images/logo.png')
+              .then((response) => response || caches.match('/StoryApps/icons/icon-192.png'));
           }
         });
     })
@@ -97,8 +99,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Notifikasi Baru';
   const options = {
     body: data.body || 'Ada update dari Story App!',
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
+    icon: '/StoryApps/icons/icon-192.png',
+    badge: '/StoryApps/icons/icon-192.png',
   };
 
   event.waitUntil(

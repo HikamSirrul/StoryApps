@@ -99,7 +99,7 @@ if ('serviceWorker' in navigator && 'PushManager' in window) {
         console.log('[Push] Subscription berhasil');
         // Kirim subscription ke server jika diperlukan
       } else {
-        console.log('[Push] Sudah terlangganan');
+        console.log('[Push] Sudah berlangganan');
       }
     } catch (err) {
       console.error('[Push] Gagal:', err);

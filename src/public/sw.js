@@ -61,26 +61,28 @@ self.addEventListener('fetch', (event) => {
   const isExternalRequest = new URL(request.url).origin !== self.location.origin;
 
   // Caching untuk tile OpenStreetMap
-  const isOSMTile = /^https:\/\/[abc]\.tile\.openstreetmap\.org\/.*/.test(request.url);
   if (isOSMTile) {
-    event.respondWith(
-      caches.open('osm-tile-cache').then((cache) => {
-        return cache.match(request).then((cached) => {
-          if (cached) return cached;
-
-          return fetch(request).then((response) => {
-            if (response && response.status === 200) {
-              cache.put(request, response.clone());
+  event.respondWith(
+    caches.open('osm-tile-cache').then((cache) => {
+      return cache.match(request).then((cached) => {
+        const fetchPromise = fetch(request)
+          .then((networkResponse) => {
+            if (networkResponse.status === 200) {
+              cache.put(request, networkResponse.clone());
             }
-            return response;
-          }).catch(() => {
-            return new Response('', { status: 503, statusText: 'Tile not available offline' });
+            return networkResponse;
+          })
+          .catch(() => {
+            return cached || new Response('', { status: 503 });
           });
-        });
-      })
-    );
-    return;
-  }
+
+        return cached || fetchPromise;
+      });
+    })
+  );
+  return;
+}
+
 
   if (isApiRequest || isExternalRequest) return;
 

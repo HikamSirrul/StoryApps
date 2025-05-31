@@ -11,26 +11,30 @@ const STATIC_ASSETS = [
   '/StoryApps/images/logo.png',
 ];
 
-// Install: cache semua asset statis secara bertahap (toleran error)
+// Deteksi tile OpenStreetMap
+function isOSMTile(url) {
+  return /^https:\/\/[abc]\.tile\.openstreetmap\.org/.test(url);
+}
+
+// Install: cache asset statis (toleran error)
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing...');
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        return Promise.all(
-          STATIC_ASSETS.map((url) =>
-            fetch(url)
-              .then((response) => {
-                if (!response.ok) throw new Error(`${url} not found`);
-                return cache.put(url, response);
-              })
-              .catch((err) => {
-                console.warn(`[SW] Failed to cache ${url}:`, err.message);
-              })
-          )
-        );
-      })
+    caches.open(CACHE_NAME).then((cache) => {
+      return Promise.all(
+        STATIC_ASSETS.map((url) =>
+          fetch(url)
+            .then((response) => {
+              if (!response.ok) throw new Error(`${url} not found`);
+              return cache.put(url, response);
+            })
+            .catch((err) => {
+              console.warn(`[SW] Failed to cache ${url}:`, err.message);
+            })
+        )
+      );
+    })
   );
 });
 
@@ -52,40 +56,43 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Fetch: strategi caching
 self.addEventListener('fetch', (event) => {
   const request = event.request;
 
   if (request.method !== 'GET') return;
 
-  const isApiRequest = request.url.includes('dicoding.dev/v1');
-  const isExternalRequest = new URL(request.url).origin !== self.location.origin;
+  const requestUrl = request.url;
+  const isApiRequest = requestUrl.includes('dicoding.dev/v1');
+  const isExternalRequest = new URL(requestUrl).origin !== self.location.origin;
 
   // Caching untuk tile OpenStreetMap
-  if (isOSMTile) {
-  event.respondWith(
-    caches.open('osm-tile-cache').then((cache) => {
-      return cache.match(request).then((cached) => {
-        const fetchPromise = fetch(request)
-          .then((networkResponse) => {
-            if (networkResponse.status === 200) {
-              cache.put(request, networkResponse.clone());
-            }
-            return networkResponse;
-          })
-          .catch(() => {
-            return cached || new Response('', { status: 503 });
-          });
+  if (isOSMTile(requestUrl)) {
+    event.respondWith(
+      caches.open('osm-tile-cache').then((cache) => {
+        return cache.match(request).then((cached) => {
+          const fetchPromise = fetch(request)
+            .then((networkResponse) => {
+              if (networkResponse.status === 200) {
+                cache.put(request, networkResponse.clone());
+              }
+              return networkResponse;
+            })
+            .catch(() => {
+              return cached || new Response('', { status: 503 });
+            });
 
-        return cached || fetchPromise;
-      });
-    })
-  );
-  return;
-}
+          return cached || fetchPromise;
+        });
+      })
+    );
+    return;
+  }
 
-
+  // Abaikan request API & eksternal lainnya
   if (isApiRequest || isExternalRequest) return;
 
+  // Caching untuk request lokal
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) return cachedResponse;

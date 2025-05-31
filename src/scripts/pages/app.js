@@ -86,7 +86,7 @@ class App {
 
     // Tambahkan tombol push notification jika bukan di halaman login/register
     if (!isAuthPage) {
-      addPushNotificationButton(this.#content);
+      setTimeout(() => addPushNotificationButton(this.#content), 0);
     }
   }
 
@@ -95,7 +95,7 @@ class App {
   }
 }
 
-// Fungsi konversi key VAPID
+// Fungsi konversi VAPID key
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -124,53 +124,58 @@ function addPushNotificationButton(container) {
     z-index: 1000;
   `;
 
-  btn.addEventListener('click', async () => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      alert('Browser Anda tidak mendukung Push Notification.');
-      return;
-    }
-
-    try {
-      const registration = await navigator.serviceWorker.ready;
-
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        alert('Izin notifikasi ditolak');
-        return;
-      }
-
-      const existing = await registration.pushManager.getSubscription();
-      if (existing) {
-        alert('Notifikasi sudah diaktifkan sebelumnya.');
-        btn.style.display = 'none';
-        return;
-      }
-
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-      });
-
-      console.log('[Push] Subscription berhasil:', subscription);
-
-      await fetch('/StoryApps/api/save-subscription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(subscription),
-      });
-
-      alert('Notifikasi berhasil diaktifkan!');
-      btn.style.display = 'none';
-    } catch (error) {
-      console.error('[Push] Gagal berlangganan:', error);
-      alert('Gagal mengaktifkan notifikasi.');
-    }
-  });
-
   container.appendChild(btn);
+
+  setTimeout(() => {
+    const buttonEl = document.getElementById('enablePushBtn');
+    if (!buttonEl) return;
+
+    buttonEl.addEventListener('click', async () => {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        alert('Browser Anda tidak mendukung Push Notification.');
+        return;
+      }
+
+      try {
+        const registration = await navigator.serviceWorker.ready;
+
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          alert('Izin notifikasi ditolak');
+          return;
+        }
+
+        const existing = await registration.pushManager.getSubscription();
+        if (existing) {
+          alert('Notifikasi sudah diaktifkan sebelumnya.');
+          buttonEl.style.display = 'none';
+          return;
+        }
+
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+
+        console.log('[Push] Subscription berhasil:', subscription);
+
+        await fetch('/StoryApps/api/save-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(subscription),
+        });
+
+        alert('Notifikasi berhasil diaktifkan!');
+        buttonEl.style.display = 'none';
+      } catch (error) {
+        console.error('[Push] Gagal berlangganan:', error);
+        alert('Gagal mengaktifkan notifikasi.');
+      }
+    });
+  }, 0); // Pastikan tombol benar-benar sudah di-DOM
 }
 
-// Registrasi Service Worker saat halaman dimuat (tanpa langsung subscribe push)
+// Registrasi Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {

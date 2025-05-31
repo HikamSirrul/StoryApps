@@ -1,27 +1,35 @@
 const CACHE_NAME = 'storyapp-v5';
 
 const STATIC_ASSETS = [
-  '/StoryApps/', 
+  '/StoryApps/',
   '/StoryApps/index.html',
   '/StoryApps/manifest.json',
-  '/StoryApps/app.bundle.js',     
-  '/StoryApps/app.css',  
+  '/StoryApps/app.bundle.js',
+  '/StoryApps/app.css',
   '/StoryApps/icons/icon-192.png',
   '/StoryApps/icons/icon-512.png',
   '/StoryApps/images/logo.png',
 ];
 
-// Install: cache semua asset statis
+// Install: cache semua asset statis secara bertahap (toleran error)
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing...');
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        return cache.addAll(STATIC_ASSETS);
-      })
-      .catch((err) => {
-        console.error('[SW] Failed caching:', err);
+        return Promise.all(
+          STATIC_ASSETS.map((url) =>
+            fetch(url)
+              .then((response) => {
+                if (!response.ok) throw new Error(`${url} not found`);
+                return cache.put(url, response);
+              })
+              .catch((err) => {
+                console.warn(`[SW] Failed to cache ${url}:`, err.message);
+              })
+          )
+        );
       })
   );
 });
@@ -96,7 +104,6 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          // Fallback jika gagal fetch
           if (request.mode === 'navigate') {
             return caches.match('/StoryApps/index.html');
           }
